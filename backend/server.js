@@ -4,6 +4,7 @@
 require("dotenv").config()
 
 const express = require("express")
+const axios = require("axios")
 const app = express()
 const PORT = process.env.PORT || 3001
 
@@ -62,6 +63,22 @@ app.post("/data", (req, res) => {
     res.status(201).json({ message: "Item created successfully", item: item })
 })
 
+const LB_URL = process.env.LB_URL || "http://localhost:8080";
+const MY_URL = `http://localhost:${PORT}`;
+
+async function selfRegisterr(){
+export async function selfRegister(){
+    try{
+        await axios.post(`${LB_URL}/register`, { url: MY_URL });    
+        console.log(`[Startup] Registered with load balancer at ${LB_URL}`);
+    } catch (error) {
+        console.error(`[Startup] Failed to register with load balancer: ${error.message}`);
+    }
+}}
+selfRegister()
+
+
+
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`)
@@ -69,8 +86,4 @@ app.listen(PORT, () => {
     console.log(`data endpoint available at http://localhost:${PORT}/data`)
     console.log(`post items endpoint available at http://localhost:${PORT}/data (POST)`)
 });
-
-
-
-
 
