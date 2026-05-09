@@ -37,15 +37,14 @@ app.get("/health", (req, res) => {
 
 
 app.get("/data", (req, res) => {
+    console.log(`hello from server on port ${PORT}`);
     res.json({
-        Source: "server", // this is just an example, you can replace it with actual data
+        Source: "server",
         port: PORT,
         count: datastore.length,
         timestamp: new Date().toISOString()
-
     })
-}
-)
+})
 
 app.post("/data", (req, res) => {
     const { name } = req.body
@@ -55,7 +54,7 @@ app.post("/data", (req, res) => {
     const item = {
         id: nextId++,
         name: name,
-        createdAt: new Date().toISOSrstring(),
+        createdAt: new Date().toISOString(),
         server: PORT // tells us which instance it was created on, useful for load balancing scenarios
     };
 
@@ -66,15 +65,14 @@ app.post("/data", (req, res) => {
 const LB_URL = process.env.LB_URL || "http://localhost:8080";
 const MY_URL = `http://localhost:${PORT}`;
 
-async function selfRegisterr(){
-export async function selfRegister(){
+async function selfRegister(){
     try{
         await axios.post(`${LB_URL}/register`, { url: MY_URL });    
         console.log(`[Startup] Registered with load balancer at ${LB_URL}`);
     } catch (error) {
         console.error(`[Startup] Failed to register with load balancer: ${error.message}`);
     }
-}}
+}
 selfRegister()
 
 // async function selfDeregister(){
