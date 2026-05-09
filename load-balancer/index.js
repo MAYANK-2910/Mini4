@@ -12,9 +12,9 @@ app.use(express.json())
 //in a real application servers would register but here we are using env variable to simulate that
 const InitialServers = (process.env.SERVERS || 'http://localhost:3001,http://localhost:3002,http://localhost:3003')
   .split(',')
-  .map(s => ({ url: s.trim(), healthy: true }))
+  .map(s => s.trim())
 
-//register initial servers on startup
+// register initial servers on startup
 InitialServers.forEach(registerServer);
 startHealthCheck(); // start the health check loop
 

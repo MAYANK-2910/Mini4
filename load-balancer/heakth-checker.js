@@ -45,55 +45,47 @@ const threshold = 2; //failure threshold
 const HEALTH_CHECK_INTERVAL = 10000; //10 seconds
 async function checkServer(server){
     try{
-     
+        const wasHealthy = server.healthy;
         const startTime = Date.now();
-     
+        const response = await axios.get(server.url + "/health", { timeout: 3000 });
         const responseTime = Date.now() - startTime;
-     
-        await asios.get(server.url + "/health", { timeout: 3000 });
-     
-        const wasdown = response.status !== 200;
-     
-        const endTime = Date.now();
-     
-        server.lastChecked = new Date().toDateString();
-     
-        server.lastseen = new Date().toDateString();
-     
-        server.healthy = response.status === 200;
-     
-        server.failureCount = 0;
-     
-        server.responseTime = responseTime+"ms";
+        const wasDown = response.status !== 200;
 
-        if(wasdown && server.healthy){
+        server.lastChecked = new Date().toDateString();
+        server.lastseen = new Date().toDateString();
+        server.healthy = response.status === 200;
+        server.failureCount = 0;
+        server.responseTime = responseTime + "ms";
+
+        if (wasDown && server.healthy) {
             console.log(`[Health Check] Server ${server.url} is back online.`);
+        } else if (!server.healthy && wasHealthy) {
+            console.log(`[Health Check] Server ${server.url} responded with status ${response.status}.`);
         }
 
-
     } catch (error) {
+        const wasHealthy = server.healthy;
         server.failureCount++;
         server.lastChecked = new Date().toDateString();
-    
 
         if (server.failureCount >= threshold) {
             server.healthy = false;
-            if(washealthy){
+            if (wasHealthy) {
                 console.log(`[Health Check] Server ${server.url} is marked as unhealthy.`);
-            }
-            else{
+            } else {
                 console.log(`[Health Check] Server ${server.url} is still unhealthy. Failure count: ${server.failureCount}`);
             }
         }
     }
 }
 
-function checkAllServers(){
+async function checkAllServers(){
     const servers =[...registry.values()];
    // check all servers in parallel
     await Promise.all(servers.map(server => checkServer(server)));
+
 }
-function startHealthCheck(){
+async function startHealthCheck(){
     console.log("[Health Checker] Starting health check loop...");
     setInterval(checkAllServers, HEALTH_CHECK_INTERVAL);
 }
