@@ -77,6 +77,16 @@ export async function selfRegister(){
 }}
 selfRegister()
 
+// async function selfDeregister(){
+//     try{
+//         await axios.post(`${LB_URL}/deregister`, { url: MY_URL });
+//         console.log(`[Shutdown] Deregistered from load balancer at ${LB_URL}`);
+//     } catch (error) {
+//         console.error(`[Shutdown] Failed to deregister from load balancer: ${error.message}`);
+//     }
+// }
+// process.on("SIGINT", selfDeregister);
+// process.on("SIGTERM", selfDeregister);
 
 
 // Start the server

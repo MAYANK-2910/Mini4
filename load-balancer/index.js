@@ -3,78 +3,74 @@ require('dotenv').config()
 const express = require('express')
 const axios = require('axios')
 const app = express()
-
+const { registerServer, deregisterServer , getHealthyServers, getALLservers , startHealthCheck } = require("./heakth-checker")
 // Load configuration from environment variables
 app.use(express.json())
 
 //Server registry
 //this is the list of servers 
 //in a real application servers would register but here we are using env variable to simulate that
-const SERVERS = (process.env.SERVERS || 'http://localhost:3001,http://localhost:3002,http://localhost:3003')
+const InitialServers = (process.env.SERVERS || 'http://localhost:3001,http://localhost:3002,http://localhost:3003')
   .split(',')
   .map(s => ({ url: s.trim(), healthy: true }))
+
+//register initial servers on startup
+InitialServers.forEach(registerServer);
+startHealthCheck(); // start the health check loop
+
 
 // round robin container
 //we check which server to use next and return that server url
 //0,1,2,0,1,2,0,1,2... and so on
-let currentIndex = 0;
+let current = 0;
 
 function getNextServer() {
 
-    for (let i = 0; i < SERVERS.length; i++) {
-
-        const server =
-            SERVERS[currentIndex % SERVERS.length];
-
-        currentIndex++;
-
-        if (server.healthy) {
-            return server;
-        }
+    const healthyServers = getHealthyServers();
+    if (healthyServers.length === 0) {
+        return null; // no healthy servers available
     }
-
-    return null;
+    const server = healthyServers[current % healthyServers.length];
+    current = (current + 1) % healthyServers.length; // move to the next server for the next request
+    return server;
 }
 
-// health check loop 
-// we check every 10 seconds if the servers are healthy or not
-async function healthCheck() {
-    for (const server of SERVERS) {
-        try {
-            await axios.get(`${server.url}/health`, {
-                timeout: 3000
-            });
 
-            if (!server.healthy) {
-                console.log(`Server recovered: ${server.url}`);
-            }
+//dynamic registration and deregistration endpoints
+//these endpoints allow servers to register and deregister themselves with the load balancer
+//in a real application, you would want to add authentication and validation to these endpoints to prevent abuse
 
-            server.healthy = true;
-
-        } catch (error) {
-
-            if (server.healthy) {
-                console.log(`Server failed: ${server.url}`);
-            }
-
-            server.healthy = false;
-        }
+app.post("/register", (req, res) => {
+    const { url } = req.body;
+    if (!url) {
+        return res.status(400).json({ error: "URL is required" });
     }
-
-}
-healthCheck()
-setInterval(healthCheck, 10000);
-
-app.get("/favicon.ico", (req, res) => {
-    res.status(204).end();
+    registerServer(url);
+    res.json({ message: `Server registered: ${url}` });
 });
-// status endpoint to check which servers are healthy
-app.get("/__status", (req, res) => {
-    res.json({
-        servers: SERVERS.map(s=> ({ url: s.url, healthy: s.healthy }))
 
-    })
-})
+app.post("/deregister", (req, res) => {
+    const { url } = req.body;
+    if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+    }
+    deregisterServer(url);
+    res.json({ message: `Server deregistered: ${url}` });
+});
+
+
+app.get("/__status", (req, res) => {
+    const servers = getALLservers();
+    const healthyCount = servers.filter(s => s.healthy).length; 
+    res.json({
+        summary: {
+            total: servers.length,
+            healthy: healthyCount,
+            unhealthy: servers.length - healthyCount
+        },
+        servers: servers    });
+
+        });
 
 //main proxy route
 //catch all requests and forward to the next healthy server
@@ -113,6 +109,5 @@ app.use(async (req , res) => {
 const lb_port = process.env.LB_PORT || 8080;
 app.listen(lb_port, () => {
     console.log(`Load balancer is running on port ${lb_port}`)
-    console.log(`balacing between servers: ${SERVERS.map(s=> s.url).join(", ")}`)
 });
 
