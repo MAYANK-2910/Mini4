@@ -54,7 +54,7 @@ app.post("/data", (req, res) => {
     const item = {
         id: nextId++,
         name: name,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date().toISOSrstring(),
         server: PORT // tells us which instance it was created on, useful for load balancing scenarios
     };
 

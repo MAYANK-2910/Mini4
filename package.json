@@ -12,7 +12,11 @@
   },
   "scripts": {
     "start": "node backend/server.js",
-    "dev":"nodemon backend/server.js"
+    "dev":"nodemon backend/server.js",
+    "lb": "node load-balancer/index.js",
+    "server1": "PORT=3001 nodemon backend/server.js",
+    "server2": "PORT=3002 nodemon backend/server.js",
+    "server3": "PORT=3003 nodemon backend/server.js"
   }
 
 }
